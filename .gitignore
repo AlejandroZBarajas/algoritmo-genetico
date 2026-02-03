@@ -1,0 +1,11 @@
+frames/
+
+venv/
+
+evolucion_fitness.png
+evolucion_sube_baja.mp4
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
