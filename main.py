@@ -109,6 +109,36 @@ def emparejar(individuos):
 
     return parejas
     
+def corregir(individuo):
+    
+    genes = individuo.genes
+    pesos_usados = []
+   
+    
+    for i, gen in enumerate(genes):
+        peso_actual = gen["peso"]
+        
+        if peso_actual in pesos_usados:
+            pesos_ocupados = {g["peso"] for g in genes}
+            
+            pesos_libres = [
+                p for p in PESOS_DISPONIBLES 
+                if p not in pesos_ocupados
+            ]
+            
+            if pesos_libres:
+                nuevo_peso = random.choice(pesos_libres)
+                genes[i]["peso"] = nuevo_peso
+                pesos_usados.append(nuevo_peso)
+            else:
+                pesos_usados.append(peso_actual)
+        else:
+            pesos_usados.append(peso_actual)
+    
+    individuo.genes = genes
+    return individuo
+
+
 def cruzar(parejas):
     global ID
 
@@ -139,6 +169,8 @@ def cruzar(parejas):
             prob_muta=None
         )
         ID += 1
+        
+        hijo1 = corregir(hijo1)
 
         hijo2 = Individuo(
             id=ID,
@@ -148,6 +180,8 @@ def cruzar(parejas):
             prob_muta=None
         )
         ID += 1
+        
+        hijo2 = corregir(hijo2)
 
         nueva_poblacion.append(hijo1)
         nueva_poblacion.append(hijo2)
@@ -222,6 +256,73 @@ def crear_video():
         video.write(frame)
 
     video.release()
+    
+def dibujar_sube_y_baja(individuo, generacion, max_torque=500):
+    """
+    Dibuja un sube y baja según el torque del individuo
+    """
+    plt.figure(figsize=(6, 4))
+
+    # Normalizamos el torque para el ángulo
+    torque = individuo.torque
+    angulo = np.clip(torque / max_torque, -1, 1) * np.pi / 6  # ±30°
+
+    # Barra del sube y baja
+    x = np.array([-3, 3])
+    y = np.array([0, 0])
+
+    # Rotación
+    x_rot = x * np.cos(angulo) - y * np.sin(angulo)
+    y_rot = x * np.sin(angulo) + y * np.cos(angulo)
+
+    plt.plot(x_rot, y_rot, linewidth=6, color="black")
+
+    # Pivote
+    plt.scatter(0, 0, s=200, color="red")
+
+    # Dibujar pesos
+    for gen in individuo.genes:
+        d = gen["distancia"]
+        p = gen["peso"]
+
+        px = d * np.cos(angulo)
+        py = d * np.sin(angulo)
+
+        plt.scatter(px, py - 0.2, s=p * 3, color="blue")
+        plt.text(px, py - 0.5, f"{p}kg", ha="center")
+
+    plt.xlim(-4, 4)
+    plt.ylim(-3, 3)
+    plt.title(f"Generación {generacion} | Torque = {torque:.2f}")
+    plt.axis("off")
+    p
+
+
+    plt.savefig(f"img/subeybaja/balance_{generacion:03d}.png")
+    plt.close()
+
+def crear_video_sube_y_baja():
+    ruta = "img/subeybaja"
+    imagenes = sorted(
+        [img for img in os.listdir(ruta) if img.startswith("balance_")]
+    )
+
+    frame = cv2.imread(os.path.join(ruta, imagenes[0]))
+    alto, ancho, _ = frame.shape
+
+    video = cv2.VideoWriter(
+        "img/sube_y_baja_balanceo.mp4",
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        10,
+        (ancho, alto)
+    )
+
+    for img in imagenes:
+        frame = cv2.imread(os.path.join(ruta, img))
+        video.write(frame)
+
+    video.release()
+
 
 def main():  
     os.makedirs("img", exist_ok=True)
@@ -257,6 +358,7 @@ def main():
             poblacion = mutados
             
         mejor = seleccionar_mejor_individuo(poblacion)
+        dibujar_sube_y_baja(mejor, GENERACION_ACTUAL)
         
         pesos = [gen["peso"] for gen in mejor.genes]
         
@@ -270,6 +372,8 @@ def main():
         GENERACION_ACTUAL+=1
     print()
     crear_video()
+    crear_video_sube_y_baja()
+
 
 
     
