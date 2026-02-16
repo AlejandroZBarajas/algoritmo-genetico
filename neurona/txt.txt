@@ -1,0 +1,21 @@
+Contexto:
+
+El ciclismo de carretera es una disciplina deportiva que al ser llevada a un nivel competitivo, requiere en gran medida del entrenamiento, considerando sesiones de trabajo por volumen (muchas horas o muchos kilometros), sesiones de recuperacion (corta duracion y baja intensidad), dias de descanso y sesiones de intervalos (cortos periodos temporales de alta intensidad, intercalados con periodos mas prolongados a baja intensidad).
+    Las sesiones de intervalos son las que ayudan a conseguir los mejores resultados en competencia, ya que el cuerpo disminuye los tiempos de recuperación y obtiene un entrenamiento altamente eficiente en relacion duracion/esfuerzo
+
+
+Problemática
+
+Los entrenamientos por intervalos así como son los mas eficientes, son los mas complicados de planificar tanto por la gran cantidad de combinaciones que esto representa, como los limites en cuanto a intensidad, duracion y cantidad de intervalos. 
+Por ejemplo:
+{Calentamiento (20 minutos): intensidad 50%
+intervalos (5 veces):
+60 segundos al 90% de intensidad
+240 segundos al 40% de intensidad
+Afloje (20 minutos): intensidad 50%}
+,
+{Calentamiento (20 minutos): intensidad 50%
+intervalos (5 veces):
+90 segundos al 80% de intensidad
+180 segundos al 50% de intensidad
+Afloje (20 minutos): intensidad 50%}
