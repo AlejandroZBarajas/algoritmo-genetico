@@ -3,34 +3,56 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-path="./neurona/"
-
 def cargar_data():
-    """ 
-    path = "./neurona/iris/iris.data"
-    dataset = []
-
-    with open(path, "r") as file:
-    for line in file:
-        line = line.strip()
-        if line == "":
-            continue
-
-        parts = line.split(",")
-        numeric_part = parts[:4]  # ignoramos la clase string
-
-        row = [float(v) for v in numeric_part]
-        dataset.append(row)
-    return dataset
- """
     dataset = [
     [0, 0, 0],
     [0, 1, 1],
     [1, 0, 1],
     [1, 1, 1]
     ]   
+    """
+    path = "./neurona/iris/iris.data"
+    dataset = []
+
+    with open(path, "r") as file:
+        for line in file:
+            line = line.strip()
+            if line == "":
+                continue
+
+            parts = line.split(",")
+            numeric_part = parts[:4]  # ignoramos la clase string
+
+            row = [float(v) for v in numeric_part]
+            dataset.append(row)
+
+    """ 
+    #dataset, vocabulario = codificar_strings(dataset)
+    #print("Diccionario:", vocabulario)
+    
     return dataset
     
+def codificar_strings(dataset):
+    diccionario = {}
+    contador = 0
+
+    dataset_numerico = []
+
+    for fila in dataset:
+        fila_num = []
+        for valor in fila:
+            if isinstance(valor, str):
+                if valor not in diccionario:
+                    diccionario[valor] = contador
+                    contador += 1
+                fila_num.append(diccionario[valor])
+            else:
+                fila_num.append(valor)
+        dataset_numerico.append(fila_num)
+
+    return dataset_numerico, diccionario
+  
+  
 def calcular_XyY(dataset):
     x = [[1] + row[:-1] for row in dataset]
     y = [row[-1] for row in dataset] 
@@ -40,13 +62,15 @@ def cargar_pesos(n):
     pesos= [random.random() for _ in range(n)]
     return pesos
 
-def calcular_Yc(X,W):   
+def calcular_Yc(X,W, activacion):   
     Yc=[]
     for fila in X:
-        suma=0
+        u=0
         for j in range(len(W)):            
-            suma += fila[j] * W[j]
-        Yc.append(suma)
+            u += fila[j] * W[j]
+            
+        y= activar_funcion(u, activacion)
+        Yc.append(u)
     return Yc
         
 def calcular_E(Y, Yc):
@@ -77,6 +101,18 @@ def cargar_lr():
     lr = [0.01, 0.02, 0.03, 0.04, 0.05]
     return lr
 
+def activar_funcion(u, activacion):
+    
+    # ADALINE / regresión lineal
+    if activacion == "identidad":
+        return u
+
+    # Perceptrón clásico (escalón)
+    elif activacion == "escalon":
+        if u < 0:
+            return 0
+        else:
+            return 1
 
 
 ###########################################################################
@@ -132,7 +168,7 @@ def graficar_pesos(pesos_por_lr, indice_peso=0):
 
 
 def main():
-    generaciones = 100
+    generaciones = 30
     
     dataset=cargar_data()
 
@@ -155,7 +191,7 @@ def main():
         pesos_hist = []
         
         for g in range(generaciones):
-            Yc = calcular_Yc(matriz_x,w)
+            Yc = calcular_Yc(matriz_x,w, "identidad")   ##    escalon o identidad
             errores=calcular_E(matriz_y, Yc)
             delta_w=calcular_delta_w(matriz_x, errores,lr)
             w = actualizar_pesos(w, delta_w)
@@ -166,7 +202,7 @@ def main():
             errores_hist.append(error_total)
             pesos_hist.append(w.copy())  
             
-            print(f"Gen {g+1} | Error total: {error_total:.4f}")
+            print(f"Gen {g+1} | Error total: {error_total:.8f}")
 
         errores_por_lr[lr] = errores_hist
         pesos_por_lr[lr] = pesos_hist
