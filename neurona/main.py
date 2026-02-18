@@ -1,15 +1,16 @@
 import random
 import math
 import matplotlib.pyplot as plt
+import os
 
-# =========================
-# 1. Cargar dataset
-# =========================
-FILE_PATH = "./neurona/iris/iris.data"
+path="./neurona/"
 
-dataset = []
+def cargar_data():
+    """ 
+    path = "./neurona/iris/iris.data"
+    dataset = []
 
-with open(FILE_PATH, "r") as file:
+    with open(path, "r") as file:
     for line in file:
         line = line.strip()
         if line == "":
@@ -20,104 +21,164 @@ with open(FILE_PATH, "r") as file:
 
         row = [float(v) for v in numeric_part]
         dataset.append(row)
+    return dataset
+ """
+    dataset = [
+    [0, 0, 0],
+    [0, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1]
+    ]   
+    return dataset
+    
+def calcular_XyY(dataset):
+    x = [[1] + row[:-1] for row in dataset]
+    y = [row[-1] for row in dataset] 
+    return x , y
+    
+def cargar_pesos(n):
+    pesos= [random.random() for _ in range(n)]
+    return pesos
 
-m = len(dataset)
-n = len(dataset[0])
+def calcular_Yc(X,W):   
+    Yc=[]
+    for fila in X:
+        suma=0
+        for j in range(len(W)):            
+            suma += fila[j] * W[j]
+        Yc.append(suma)
+    return Yc
+        
+def calcular_E(Y, Yc):
+    e = []
+    for y, yc in zip(Y, Yc):
+        e.append(y - yc)
+    return e
 
-# =========================
-# 2. Construir X y Y
-# =========================
-X = []
-Y = []
+def calcular_delta_w(matriz_x,errores,lr):
+    n_pesos = len(matriz_x[0])  
+    delta_w = []
 
-for row in dataset:
-    X.append([1.0, row[0], row[1], row[2]])  # bias
-    Y.append([row[3]])
+    for j in range(n_pesos):
+        suma = 0
+        for i in range(len(errores)):
+            suma += matriz_x[i][j] * errores[i]
+        delta_w.append(lr * suma)
 
-# =========================
-# 3. Learning rates y épocas
-# =========================
-learning_rates = [0.9, 0.7, 0.5, 0.1, 0.3]
-epochs = 30
+    return delta_w
 
-weights_history = {}      # lr -> [ [w_epoch0], [w_epoch1], ... ]
-error_norm_history = {}   # lr -> [ |E|_epoch0, |E|_epoch1, ... ]
+def actualizar_pesos(w, delta_w):
+    for i in range(len(w)):
+        w[i] += delta_w[i]
+    return w
 
-# =========================
-# 4. Entrenamiento
-# =========================
-for lr in learning_rates:
 
-    # Pesos iniciales aleatorios [0,1]
-    W = [[random.random()] for _ in range(n)]
+def cargar_lr():
+    lr = [0.01, 0.02, 0.03, 0.04, 0.05]
+    return lr
 
-    weights_history[lr] = []
-    error_norm_history[lr] = []
 
-    for epoch in range(epochs):
 
-        # ---- Forward ----
-        Yc = []
-        for i in range(m):
-            s = 0.0
-            for j in range(n):
-                s += X[i][j] * W[j][0]
-            Yc.append([s])
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
 
-        # ---- Error ----
-        E = []
-        for i in range(m):
-            E.append([Y[i][0] - Yc[i][0]])
+def graficar_error(errores_por_lr):
+    path="./neurona/"
+    plt.figure(figsize=(8,5))
 
-        # ---- Norma del error ----
-        norm_E = 0.0
-        for i in range(m):
-            norm_E += E[i][0] ** 2
-        norm_E = math.sqrt(norm_E)
-        error_norm_history[lr].append(norm_E)
+    for lr, errores in errores_por_lr.items():
+        plt.plot(range(1, len(errores)+1), errores, label=f"lr={lr}")
 
-        # ---- ΔW = Xᵀ · E ----
-        deltaW = [[0.0] for _ in range(n)]
-        for j in range(n):
-            s = 0.0
-            for i in range(m):
-                s += X[i][j] * E[i][0]
-            deltaW[j][0] = s
+    plt.xlabel("Generaciones")
+    plt.ylabel("Error total")
+    plt.title("Evolución del error para distintos learning rates")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(path,"error.png"))
 
-        # ---- Actualización ----
-        for j in range(n):
-            W[j][0] -= lr * deltaW[j][0]
+###########################################################################
+###########################################################################
+###########################################################################
 
-        # Guardar pesos
-        weights_history[lr].append([w[0] for w in W])
 
-# =========================
-# 5. Gráfica: Pesos vs épocas
-# =========================
-plt.figure()
-for lr in learning_rates:
-    for k in range(n):
-        plt.plot(
-            range(epochs),
-            [w[k] for w in weights_history[lr]]
-        )
+def graficar_pesos(pesos_por_lr, indice_peso=0):
+    path="./neurona/"
+    plt.figure(figsize=(8,5))
 
-plt.xlabel("Épocas")
-plt.ylabel("Pesos W")
-plt.title("Evolución de los pesos para distintos learning rates")
-plt.savefig("pesos.png")
-plt.close()
-# =========================
-# 6. Gráfica: Norma del error
-# =========================
-plt.figure()
-for lr in learning_rates:
-    plt.plot(
-        range(epochs),
-        error_norm_history[lr]
-    )
+    for lr, pesos_hist in pesos_por_lr.items():
+        peso_i = [w[indice_peso] for w in pesos_hist]
+        plt.plot(range(1, len(peso_i)+1), peso_i, label=f"lr={lr}")
 
-plt.xlabel("Épocas")
-plt.ylabel("|Error|")
-plt.savefig("error.png")
-plt.close()
+    plt.xlabel("Generaciones")
+    plt.ylabel(f"Peso w{indice_peso}")
+    plt.title(f"Evolución del peso w{indice_peso}")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(path,"peso.png"))
+
+
+
+
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+
+
+def main():
+    generaciones = 100
+    
+    dataset=cargar_data()
+
+    matriz_x, matriz_y= calcular_XyY(dataset)    
+
+    n_pesos = len(matriz_x[0])
+    
+    l_rates=cargar_lr()
+    
+    errores_por_lr = {}
+    pesos_por_lr = {}
+    
+    for lr in l_rates:
+        print("\n==============================")
+        print("Learning rate:", lr)
+ 
+        w=cargar_pesos(n_pesos)
+        
+        errores_hist = []
+        pesos_hist = []
+        
+        for g in range(generaciones):
+            Yc = calcular_Yc(matriz_x,w)
+            errores=calcular_E(matriz_y, Yc)
+            delta_w=calcular_delta_w(matriz_x, errores,lr)
+            w = actualizar_pesos(w, delta_w)
+            
+            error_total = sum(abs(e) for e in errores)
+            
+            ####         HISTORIALES
+            errores_hist.append(error_total)
+            pesos_hist.append(w.copy())  
+            
+            print(f"Gen {g+1} | Error total: {error_total:.4f}")
+
+        errores_por_lr[lr] = errores_hist
+        pesos_por_lr[lr] = pesos_hist
+    
+    graficar_error(errores_por_lr)
+    graficar_pesos(pesos_por_lr)
+
+    
+    
+    
+if __name__ == "__main__":
+    main()
+
+ 
+ 
