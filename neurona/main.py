@@ -48,22 +48,29 @@ def codificar_strings(dataset):
     return dataset_numerico, diccionario
   
 def calcular_XyY(dataset):
-    # 1. separar etiquetas
-    y = [row[-1] for row in dataset]
+    y_raw = []
+    X_sin_bias = []
+    for row in dataset:
+        y_raw.append(row[-1])
+        X_sin_bias.append(row[:-1])
 
-    # 2. extraer solo features (sin y)
-    X_sin_bias = [row[:-1] for row in dataset]
-
-    # 3. normalizar features
     X_norm = normalizar_minmax(X_sin_bias)
 
-    # 4. agregar bias
-    X_final = [[1] + row for row in X_norm]
+    X_final = []
+    for row in X_norm:
+        X_final.append([1] + row)
 
-    print(f"Filas de X (muestras): {len(X_final)}")
-    print(f"Columnas de X (features + bias): {len(X_final[0])}")
+    y_min = min(y_raw)
+    y_max = max(y_raw)
 
-    return X_final, y
+    y_norm = []
+    for v in y_raw:
+        if y_max != y_min:
+            y_norm.append((v - y_min) / (y_max - y_min))
+        else:
+            y_norm.append(0.0)
+
+    return X_final, y_norm
     
 def normalizar_minmax(X):
     X_norm = []
@@ -93,18 +100,14 @@ def calcular_Yc(X,W, activacion):
     Yc=[]
     for fila in X:
         u=0
+        #print(f"len W: {len(W)}")
         for j in range(len(W)):            
             u += fila[j] * W[j]
-            
         y= activar_funcion(u, activacion)
-        Yc.append(u)
+        Yc.append(y)
+   
     return Yc
         
-""" def calcular_E(Y, Yc):
-    e = []
-    for y, yc in zip(Y, Yc):
-        e.append(y - yc)
-    return e """
 def calcular_E(Y, Yc):
     return [yc - y for y, yc in zip(Y, Yc)]
 
@@ -125,23 +128,23 @@ def actualizar_pesos(w, delta_w):
         w[i] -= delta_w[i]
     return w
 
-
 def cargar_lr():
     lr = [0.01, 0.02, 0.03, 0.04, 0.05]
     return lr
 
 def activar_funcion(u, activacion):
-    
-    # ADALINE / regresión lineal
     if activacion == "identidad":
         return u
-
-    # Perceptrón clásico (escalón)
     elif activacion == "escalon":
-        if u < 0:
-            return 0
-        else:
-            return 1
+        return 1 if u >= 0 else 0
+    elif activacion == "sigmoide":
+        return 1 / (1 + math.exp(-u))
+    elif activacion == "relu":
+        return max(0.0, u)
+    elif activacion == "tanh":
+        return math.tanh(u)
+    elif activacion == "leaky_relu":
+        return u if u >= 0 else 0.01 * u
 
 
 ###########################################################################
@@ -216,12 +219,11 @@ def main():
         print("Learning rate:", lr)
         w=cargar_pesos(n_pesos)
  
-        
         errores_hist = []
         pesos_hist = []
         
         for g in range(generaciones):
-            Yc = calcular_Yc(matriz_x,w, "identidad")   ##    escalon o identidad
+            Yc = calcular_Yc(matriz_x,w, "identidad")   ##    escalon || identidad ||
             errores=calcular_E(matriz_y, Yc)
             delta_w=calcular_delta_w(matriz_x, errores,lr)
             w = actualizar_pesos(w, delta_w)
@@ -246,4 +248,51 @@ if __name__ == "__main__":
     main()
 
  
- 
+# =============================================================================
+# GUÍA DE SELECCIÓN DE FUNCIÓN DE ACTIVACIÓN
+# =============================================================================
+#
+# ¿Cómo elegir? Observa la columna Y (última columna del dataset)
+#
+# -----------------------------------------------------------------------------
+# IDENTIDAD  →  Y continua, puede ser negativa, sin límite
+# -----------------------------------------------------------------------------
+# 120.5,  -33.2,  410.0,  88.1,  -200.3, -450.20
+# -88.3,   21.7, -190.4, -44.2,   310.1,  830.50
+#  44.1,  -99.8,  320.5,  12.3,  -150.7, -120.30
+# -210.4,  55.3, -410.2,  78.9,   220.4,  640.80
+#
+# -----------------------------------------------------------------------------
+# SIGMOIDE  →  Y solo tiene valores 0 o 1  (clasificación binaria)
+# -----------------------------------------------------------------------------
+# 120.5,  -33.2,  410.0,  88.1,  -200.3,  1.00
+# -88.3,   21.7, -190.4, -44.2,   310.1,  0.00
+#  44.1,  -99.8,  320.5,  12.3,  -150.7,  1.00
+# -210.4,  55.3, -410.2,  78.9,   220.4,  0.00
+#
+# -----------------------------------------------------------------------------
+# RELU  →  Y continua, siempre >= 0, puede tener ceros exactos
+# -----------------------------------------------------------------------------
+# 120.5,  -33.2,  410.0,  88.1,  -200.3,    0.00
+# -88.3,   21.7, -190.4, -44.2,   310.1, 1240.50
+#  44.1,  -99.8,  320.5,  12.3,  -150.7,    0.00
+# -210.4,  55.3, -410.2,  78.9,   220.4, 3180.80
+#
+# -----------------------------------------------------------------------------
+# TANH  →  Y acotada entre -1 y 1  (regresión normalizada o bipolar)
+# -----------------------------------------------------------------------------
+# 120.5,  -33.2,  410.0,  88.1,  -200.3, -0.85
+# -88.3,   21.7, -190.4, -44.2,   310.1,  0.92
+#  44.1,  -99.8,  320.5,  12.3,  -150.7, -0.43
+# -210.4,  55.3, -410.2,  78.9,   220.4,  0.67
+#
+# -----------------------------------------------------------------------------
+# ESCALÓN  →  Y solo 0 o 1, NO necesitas probabilidades, solo clase dura
+#             Diferencia con sigmoide: no es diferenciable, sin gradiente suave
+# -----------------------------------------------------------------------------
+# 120.5,  -33.2,  410.0,  88.1,  -200.3,  1.00
+# -88.3,   21.7, -190.4, -44.2,   310.1,  0.00
+#  44.1,  -99.8,  320.5,  12.3,  -150.7,  1.00
+# -210.4,  55.3, -410.2,  78.9,   220.4,  0.00
+#
+# =============================================================================
