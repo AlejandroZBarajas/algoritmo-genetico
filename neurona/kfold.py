@@ -6,8 +6,8 @@ import os
 # =====================================================================
 # CONSTANTES
 # =====================================================================
-K = 3               # Número de folds
-GENERACIONES = 30
+K = 3       # Número de folds
+GENERACIONES = 1300
 ACTIVACION = "identidad"
 PATH = "./algoritmo-genetico/neurona/"
 
